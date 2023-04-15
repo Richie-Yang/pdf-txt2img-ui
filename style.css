@@ -1,0 +1,25 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: whitesmoke;
+}
+
+main {
+  /*   outline: 1px solid tomato; */
+  position: relative;
+  width: 350px;
+  height: 500px;
+  margin: 15vh auto;
+  padding: 50px;
+  background-color: rgb(195, 210, 220);
+  border-radius: 10px;
+  box-shadow: -5px 5px 10px lightgrey;
+}
