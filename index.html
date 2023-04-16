@@ -16,7 +16,7 @@
   <body>
     <main>
       <h3>文字圖片PDF轉換器</h3>
-      <p class="">Text To Image PDF Converter</p>
+      <p>Text To Image PDF Converter</p>
       <br />
       <div id="spinner" class="d-flex flex-column align-items-center d-none">
         <strong>轉檔中，請稍等...</strong>
@@ -29,18 +29,23 @@
           <span class="visually-hidden">Loading...</span>
         </div>
       </div>
-      <div id="form">
-        <label for="customRange2" class="form-label"
-          >輸出品質/Export Quality</label
-        >
-        <input
-          type="range"
-          class="form-range"
-          min="1"
-          max="3"
-          id="qualityInput"
-          name="quality"
-        />
+
+      <form id="form">
+        <div class="mb-3">
+          <label for="customRange2" class="form-label"
+            >輸出品質 / Export Quality：</label
+          >
+          <span id="qualityDisplay" class="text-primary">一般</span>
+          <input
+            type="range"
+            class="form-range form-control"
+            min="1"
+            max="3"
+            id="qualityInput"
+            name="quality"
+            required
+          />
+        </div>
 
         <div class="input-group mb-3">
           <input type="file" class="form-control" id="fileInput" name="file" />
@@ -54,29 +59,48 @@
             placeholder="Password"
             name="passwordInput"
           />
-          <label for="passwordInput">密碼/Password</label>
+          <label for="passwordInput">密碼 / Password</label>
         </div>
 
         <button
-          type="button"
+          type="submit"
           id="submitBtn"
           class="btn btn-secondary w-100 position-relative"
         >
-          上傳/Upload
+          上傳 / Upload
         </button>
-      </div>
+      </form>
     </main>
     <script
-      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"
-      integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe"
+      src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.7/dist/umd/popper.min.js"
+      integrity="sha384-zYPOMqeu1DAVkHiLqWBUTcbYfZ8osu1Nd6Z89ify25QV9guujx43ITvfi12/QExE"
       crossorigin="anonymous"
     ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.min.js"
+      integrity="sha384-Y4oOpwW3duJdCWv5ly8SCFYWqFDsfob/3GkgExXKV4idmbt98QcxXYs9UoXAB7BZ"
+      crossorigin="anonymous"
+    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
       const ENV = "prod";
       const API_URL =
         ENV === "local"
           ? "http://localhost:5001"
           : "https://pdf-txt2img-app-gloinx6ypa-de.a.run.app";
+
+      const qualityMap = {
+        1: "高效能",
+        2: "一般",
+        3: "高畫質",
+      };
+      document
+        .getElementById("qualityInput")
+        .addEventListener("change", (e) => {
+          const qualityKey = e.target.value;
+          document.getElementById("qualityDisplay").innerHTML =
+            qualityMap[qualityKey];
+        });
 
       document
         .getElementById("submitBtn")
@@ -85,7 +109,7 @@
       const form = document.querySelector("#form");
       const spinner = document.querySelector("#spinner");
 
-      function handleSubmit(event) {
+      async function handleSubmit(event) {
         event.preventDefault();
         form.classList.add("d-none");
         spinner.classList.remove("d-none");
@@ -97,10 +121,9 @@
         const headers = new Headers();
         headers.append("Authorization", `Bearer ${passwordInput}`);
 
-        const fileName = fileInput.name;
         const body = new FormData();
         body.append("responseType", "file");
-        body.append("quality", Number(qualityInput));
+        body.append("quality", qualityInput);
         body.append("file", fileInput);
 
         const requestOptions = {
@@ -110,19 +133,39 @@
           redirect: "follow",
         };
 
-        fetch(`${API_URL}/convert`, requestOptions)
-          .then((res) => res.blob())
-          .then((data) => {
-            const a = document.createElement("a");
-            a.href = window.URL.createObjectURL(data);
-            a.download = `${fileName}_converted.pdf`;
-            a.click();
-          })
-          .catch((error) => console.log("error", error))
-          .finally(() => {
-            form.classList.remove("d-none");
-            spinner.classList.add("d-none");
+        try {
+          if (!fileInput || !passwordInput)
+            throw new Error("檔案或密碼錯誤 / File or password error");
+
+          const res = await fetch(`${API_URL}/convert`, requestOptions);
+          if (!res.ok) {
+            const errorBody = await res.json();
+            throw new Error(errorBody.message);
+          }
+
+          const data = await res.blob();
+          const a = document.createElement("a");
+          a.href = window.URL.createObjectURL(data);
+          const fileName = fileInput.name;
+          a.download = `${fileName}_converted.pdf`;
+          a.click();
+
+          Swal.fire({
+            icon: "success",
+            title: "轉檔成功\nConvert Success",
+            text: "請至下載資料夾取得檔案 / Please check your download folder",
           });
+        } catch (error) {
+          Swal.fire({
+            icon: "error",
+            title: "轉檔失敗\nConvert Fail",
+            text: `error detail: ${error.message}`,
+          });
+          console.error(error);
+        } finally {
+          form.classList.remove("d-none");
+          spinner.classList.add("d-none");
+        }
       }
     </script>
   </body>
